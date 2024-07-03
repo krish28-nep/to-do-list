@@ -1,22 +1,26 @@
-const input = document.getElementById('input');
 const button = document.getElementById('search');
 const taskInput = document.getElementById('add_new');
-
+let jsonData=[];
 button.addEventListener('click', (e) => {
     e.preventDefault(); // Prevent the form from submitting
-    let message = [];
-    if (taskInput.value === '' || taskInput.value === null) {
-        message.push('Type anything you want');
-    }
 
-    if (message.length > 0) {
-        alert(message.join(', '));
+    if (taskInput.value.trim() === '') {
+        alert('Please enter a task');
     } else {
-        let task = taskInput.value;
+        let task = taskInput.value.trim();
         createTask(task);
         taskInput.value = ''; // Clear the input after adding the task
     }
 });
+
+const month = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+function updateDate(timeText) {
+    let currentTime = new Date();
+    let hours = currentTime.getHours().toString().padStart(2, '0');
+    let minutes = currentTime.getMinutes().toString().padStart(2, '0');
+    timeText.textContent = `${month[currentTime.getMonth()]} ${currentTime.getDate()} ${currentTime.getFullYear()}, ${hours}:${minutes}`;
+}
 
 function createTask(task) {
     let taskList = document.getElementById('taskList');
@@ -44,27 +48,95 @@ function createTask(task) {
     timeButton.setAttribute('class', 'fa fa-clock');
     timeButton.style.fontSize = '20px';
     timeButton.style.color = 'black';
-    timeButton.style.marginLeft = '10px';
+    timeButton.style.Left = '1';
 
-    let currentTime = new Date();
-    let timeText = document.createElement('span');
-    timeText.textContent = `Created at: ${currentTime.getHours()}:${currentTime.getMinutes()}`;
-    timeText.style.marginLeft = '10px';
-    timeText.style.fontSize = '14px';
-    timeText.style.color = 'gray';
+    // Create the edit button
+    let editButton = document.createElement('i');
+    editButton.setAttribute('class', 'fa-solid fa-file-pen');
+    editButton.style.cursor = "pointer";
+    editButton.style.marginLeft = '50px';
 
-    // Add an event listener to the remove button
-    removeButton.addEventListener('click', () => {
-        taskList.removeChild(taskElement);
+    editButton.addEventListener('click', e => {
+        timeText.style.display = 'none';
+        editButton.style.display = 'none';
+
+        let editTask = document.createElement('input');
+        editTask.setAttribute('type', 'text');
+        editTask.value = taskText.textContent; // Pre-fill the input with the current task text
+
+        // Positioning the editTask input field
+        editTask.style.position = "absolute";
+        editTask.style.left = "7"; // Adjust positioning as needed
+
+        taskElement.appendChild(editTask);
+
+        editTask.addEventListener('keypress', e => {
+            if (e.key === "Enter") {
+                taskText.textContent = editTask.value.trim();
+                taskElement.removeChild(editTask);
+                timeText.style.display = 'inline';
+                editButton.style.display = 'inline';
+                updateDate(timeText); // Update the date after editing
+                taskText.prepend(check);
+            }
+        });
     });
 
-    // Append the checkbox, task text, time icon, and remove button to the task element
+    // Initialize timeText and update its content
+    let timeText = document.createElement('span');
+    timeText.style.marginLeft = '90px';
+    timeText.style.paddingBottom = '20px';
+    timeText.style.fontSize = '10px';
+    timeText.style.color = 'gray';
+    updateDate(timeText);
+
+    // Add event listener to the remove button
+    removeButton.addEventListener('click', () => {
+        taskList.removeChild(taskElement);
+        // Remove from local storage
+        removeFromLocalStorage(taskText.textContent);
+    });
+
+    // Append checkbox, task text, time icon, time text, edit button, and remove button to task element
     taskText.prepend(check);
     taskElement.appendChild(taskText);
-    taskElement.appendChild(timeButton);
-    timeButton.append(timeText)
+    timeText.prepend(timeButton);
+    taskElement.appendChild(timeText);
+    taskElement.appendChild(editButton);
     taskElement.appendChild(removeButton);
 
     // Append the task element to the task list
     taskList.appendChild(taskElement);
+
+    let enteredData = {
+        task: taskText.textContent,
+        time: timeText.textContent
+    }
+
+    jsonData.push(enteredData);
+    console.log(jsonData);
+
+    let jsonString= JSON.stringify(jsonData);
+
+    const localData= localStorage.setItem("Data", jsonString);
+    
 }
+
+function removeFromLocalStorage(taskTextContent) {
+    // Retrieve tasks from local storage
+    let tasks = JSON.parse(localStorage.getItem("Data")) || [];
+
+    // Filter out the task with taskTextContent
+    tasks = tasks.filter(task => task.task !== taskTextContent);
+
+    // Update local storage with the filtered tasks
+    localStorage.setItem("Data", JSON.stringify(tasks));
+}
+
+
+window.addEventListener('load', () => {
+    let tasks = JSON.parse(localStorage.getItem('Data')) || [];
+    tasks.forEach(task => {
+        createTask(task.task);
+    });
+});
